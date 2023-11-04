@@ -2,3 +2,8 @@ fastapi
 redis
 pydantic
 uvicorn
+sqlalchemy
+databases
+NorenRestApiPy
+pyyaml
+pyotp

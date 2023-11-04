@@ -10,10 +10,6 @@ from pydantic import BaseModel
 # 6. Authentication built in
 # 7. Swagger and ReDoc built-in
 
-class Todo(BaseModel):
-    title: str
-    description: str
-
 
 class SignalReq(BaseModel):
     ltp: str
