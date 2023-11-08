@@ -1,9 +1,11 @@
+import asyncio
+
 from fastapi import FastAPI
 from calc.models.models import SignalReq, SignalResp, Signal
 import redis
 import json
 import uvicorn
-
+from calc.service.calc_engine import CalcEngine
 app = FastAPI()
 
 # Create a Redis connection
@@ -35,4 +37,7 @@ async def load_signal(signal: Signal):
 
 
 if __name__ == "__main__":
+    c = CalcEngine()
+    c.calc_signal()
     uvicorn.run(app, host="127.0.0.1", port=8000)
+    c.stop_scheduler()

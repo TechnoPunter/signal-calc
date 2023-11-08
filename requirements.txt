@@ -5,5 +5,8 @@ uvicorn
 sqlalchemy
 databases
 NorenRestApiPy
+websocket-client
+requests
 pyyaml
 pyotp
+apscheduler
