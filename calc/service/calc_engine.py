@@ -1,5 +1,6 @@
 import concurrent.futures
 import logging
+
 from calc.models.models import Signal
 from calc.dataprovider.redis import insert_signal, get_signal
 import pyotp
@@ -8,6 +9,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from datetime import datetime, time
+
+from calc.utils.utils import Symbols
 
 from calc.config.reader import cfg
 
@@ -21,20 +24,23 @@ class CalcEngine:
     def __init__(self, acct: str = 'Trader-V2-Mahi'):
         self.scheduler = BackgroundScheduler()
         self.start_scheduler()
+        self.symbols = Symbols()
         creds = cfg['shoonya']
         if creds is None:
             raise Exception(f'Unable to find creds for')
         cred = creds[acct]
-        print(f"api_login: About to call api.login with {cred}")
+        logger.info(f"api_login: About to call api.login with {cred}")
         resp = self.api.login(userid=cred['user'],
                               password=cred['pwd'],
                               twoFA=pyotp.TOTP(cred['token']).now(),
                               vendor_code=cred['vc'],
                               api_secret=cred['apikey'],
                               imei=cred['imei'])
-        print(f"api login response {resp}")
+        # todo add retry mechanism
+        logger.info(f"api login response {resp}")
 
-    def get_signal_by_ts(self, scrip: str, ts: list):
+    @staticmethod
+    def get_signal_by_ts(scrip: str, ts: list):
         """
         Get Low High based on ts
         :param scrip:
@@ -62,8 +68,8 @@ class CalcEngine:
         :return:
         """
         # make call to shoonya api
-        ts = self.api.get_time_price_series("NSE", "2475")
-        print(f'result of shoonya api {ts}')
+        ts = self.api.get_time_price_series("NSE", self.symbols.get_token(scrip))
+        logger.debug(f'Result of shoonya api {ts}')
         return scrip, ts
 
     def get_portfolio_ts_data(self, scrips: list = []):
@@ -73,7 +79,7 @@ class CalcEngine:
         :param tf:
         :return:
         """
-        print(len(scrips))
+        logger.info(len(scrips))
         results = []
 
         # schedule job
@@ -87,16 +93,15 @@ class CalcEngine:
                     insert_signal(signal)
                     results.append(f"{signal}")
                 else:
-                    print(f'time series none')
-        print(results)
-        print(len(results))
+                    logger.info(f'time series none')
+        logger.info(results)
+        logger.info(len(results))
 
     def execute_for_every_interval(self, interval: int, scrips: list = []):
-        # self.get_portfolio_ts_data(tf, scrips)
         # Define the job function
         self.get_portfolio_ts_data(scrips)
 
-        print(f'executing every {interval} min')
+        logger.info(f'executing every {interval} min')
 
         def scheduled_task():
             self.get_portfolio_ts_data(scrips)
@@ -120,9 +125,9 @@ class CalcEngine:
             raise Exception(f'Unable to find scrips for calc')
 
         if len(scrips) == 0:
-            logger.warning(f'zero scrips !!')
+            logger.warning(f'Zero scrips !!')
         else:
-            print("starting engine")
+            logger.info("starting engine")
             current_time = datetime.now().time()
             start_time = time(9, 15)  # 9:15 AM
             end_time = time(15, 30)  # 3:30 PM
@@ -136,7 +141,7 @@ class CalcEngine:
                     args=(1, scrips),  # Pass the function arguments
                     id="get_portfolio_ts_data_job"
                 )
-                print("scheduled at 9:30 am")
+                logger.info("scheduled at 9:30 am")
 
     def start_scheduler(self):
         # Start the scheduler
@@ -147,9 +152,12 @@ class CalcEngine:
         try:
             self.scheduler.shutdown()
         except Exception as e:
-            print(f"Scheduler is not running !!")
+            logger.info(f"Scheduler is not running !!")
 
 
 if __name__ == '__main__':
+    import calc.loggers.setup_logger
+
+    logger.info("Started Calc Engine")
     c = CalcEngine()
     c.calc_signal()
