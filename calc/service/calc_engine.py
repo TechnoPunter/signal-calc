@@ -76,10 +76,10 @@ class CalcEngine:
         """
         Gets OHLC data for entire trading portfolio & calculate & store the signal
         :param scrips:
-        :param scrips: List of scrips to process in the format NSE_SYMBOL e.g. NSE_ONGC
+        :param scripts: List of scripts to process in the format NSE_SYMBOL e.g. NSE_ONGC
         :return:
         """
-        logger.info(f"Starting Processing for {len(scrips)} scrips")
+        logger.info(f"Starting Processing for {len(scrips)} scripts")
         results = []
 
         # schedule job
@@ -95,20 +95,20 @@ class CalcEngine:
                 else:
                     logger.info(f'time series none')
         logger.debug(results)
-        logger.info(f"Finished Processing for {len(scrips)} scrips")
+        logger.info(f"Finished Processing for {len(scrips)} scripts")
 
-    # def execute_for_every_interval(self, interval: int, scrips: list = []):
+    # def execute_for_every_interval(self, interval: int, scripts: list = []):
     #     # Define the job function
-    #     self.process_portfolio_scrips(scrips)
+    #     self.process_portfolio_scrips(scripts)
 
     # logger.info(f'executing every {interval} min')
     #
     # while True:
-    #     self.process_portfolio_scrips(scrips)
+    #     self.process_portfolio_scrips(scripts)
     #     time.sleep(interval * 60)
 
     # def scheduled_task():
-    #     self.get_portfolio_ts_data(scrips)
+    #     self.get_portfolio_ts_data(scripts)
     #
     # self.scheduler.add_job(
     #     scheduled_task,
@@ -125,12 +125,12 @@ class CalcEngine:
         calc_config = cfg["calc"]
         if calc_config is None:
             raise Exception(f'Unable to find calc configuration')
-        scrips = calc_config["scrips"]
+        scrips = calc_config["scripts"]
         if scrips is None:
-            raise Exception(f'Unable to find scrips for calc')
+            raise Exception(f'Unable to find scripts for calc')
 
         if len(scrips) == 0:
-            logger.warning(f'Zero scrips !!')
+            logger.warning(f'Zero scripts !!')
         else:
             logger.info("Starting engine")
             current_time = datetime.datetime.now().time()
@@ -147,7 +147,7 @@ class CalcEngine:
             #     self.scheduler.add_job(
             #         self.execute_for_every_interval,  # Pass the function as a callable
             #         trigger=CronTrigger(hour=9, minute=15, second=0, day_of_week="mon-fri"),
-            #         args=(1, scrips),  # Pass the function arguments
+            #         args=(1, scripts),  # Pass the function arguments
             #         id="get_portfolio_ts_data_job"
             #     )
             #     logger.info("scheduled at 9:30 am")
