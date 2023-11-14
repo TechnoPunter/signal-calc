@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-
 # features
 # 1. It's just plain python
 # 2. Built in async
@@ -24,3 +23,10 @@ class Signal(BaseModel):
     scrip: str
     low: float
     high: float
+    timeStamp: str
+
+
+class SignalHistory(BaseModel):
+    signal: Signal
+    ohlc: list
+

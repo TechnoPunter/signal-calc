@@ -5,16 +5,16 @@ import time
 
 import pyotp
 from NorenRestApiPy.NorenApi import NorenApi
-from apscheduler.schedulers.background import BackgroundScheduler
 
 from calc.config.reader import cfg
-from calc.dataprovider.redis import insert_signal
-from calc.models.models import Signal
+from calc.dataprovider.redis import insert_signal, insert_signal_history
+from calc.models.models import Signal, SignalHistory
 from calc.utils.utils import Symbols
+
 
 logger = logging.getLogger(__name__)
 
-DEBUG = False
+DEBUG = True
 
 
 class CalcEngine:
@@ -22,8 +22,6 @@ class CalcEngine:
                    websocket='wss://api.shoonya.com/NorenWSTP/')
 
     def __init__(self, acct: str = 'Trader-V2-Mahi'):
-        self.scheduler = BackgroundScheduler()
-        self.start_scheduler()
         self.symbols = Symbols()
         creds = cfg['shoonya']
         if creds is None:
@@ -59,7 +57,7 @@ class CalcEngine:
             if inth > high:
                 high = inth
 
-        signal = Signal(scrip=scrip, low=low, high=high)
+        signal = Signal(scrip=scrip, low=low, high=high, timeStamp=str(datetime.datetime.now().isoformat()))
         return signal
 
     def get_scrip_ts_data(self, scrip: str):
@@ -82,8 +80,6 @@ class CalcEngine:
         logger.info(f"Starting Processing for {len(scrips)} scrips")
         results = []
 
-        # schedule job
-
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(scrips)) as executor:
             futures = [executor.submit(self.get_scrip_ts_data, scrip) for scrip in scrips]
             for future in concurrent.futures.as_completed(futures):
@@ -91,31 +87,13 @@ class CalcEngine:
                 if ts is not None:
                     signal = self.get_signal_by_ts(scrip, ts)
                     insert_signal(signal)
+                    signal_hist = SignalHistory(signal=signal, ohlc=ts)
+                    insert_signal_history(signal_hist, signal.scrip, signal.timeStamp)
                     results.append(f"{signal}")
                 else:
                     logger.info(f'time series none')
         logger.debug(results)
         logger.info(f"Finished Processing for {len(scrips)} scrips")
-
-    # def execute_for_every_interval(self, interval: int, scrips: list = []):
-    #     # Define the job function
-    #     self.process_portfolio_scrips(scrips)
-
-    # logger.info(f'executing every {interval} min')
-    #
-    # while True:
-    #     self.process_portfolio_scrips(scrips)
-    #     time.sleep(interval * 60)
-
-    # def scheduled_task():
-    #     self.get_portfolio_ts_data(scrips)
-    #
-    # self.scheduler.add_job(
-    #     scheduled_task,
-    #     trigger=CronTrigger(second="0", minute=f"*/{interval}", hour="*", day_of_week="mon-fri"),
-    #     id="my_scheduled_task"
-    # )
-    # logger.info("Here")
 
     def calc_signal(self):
         """
@@ -143,29 +121,10 @@ class CalcEngine:
                     self.process_portfolio_scrips(scrips)
                     time.sleep(1 * 60)
 
-            # else:
-            #     self.scheduler.add_job(
-            #         self.execute_for_every_interval,  # Pass the function as a callable
-            #         trigger=CronTrigger(hour=9, minute=15, second=0, day_of_week="mon-fri"),
-            #         args=(1, scrips),  # Pass the function arguments
-            #         id="get_portfolio_ts_data_job"
-            #     )
-            #     logger.info("scheduled at 9:30 am")
-
-    def start_scheduler(self):
-        # Start the scheduler
-        self.scheduler.start()
-
-    def stop_scheduler(self):
-        # Stop the scheduler if it's running
-        try:
-            self.scheduler.shutdown()
-        except Exception as e:
-            logger.info(f"Scheduler is not running !!")
-
 
 if __name__ == '__main__':
     import calc.loggers.setup_logger
+
     DEBUG = True
     logger.info("Started Calc Engine")
     c = CalcEngine()
