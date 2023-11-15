@@ -13,7 +13,7 @@ from calc.utils.utils import Symbols
 
 logger = logging.getLogger(__name__)
 
-DEBUG = True
+DEBUG = False
 
 
 class CalcEngine:
@@ -137,7 +137,7 @@ class CalcEngine:
 if __name__ == '__main__':
     import commons.loggers.setup_logger
 
-    DEBUG = True
+    DEBUG = False
     logger.info("Started Calc Engine")
     c = CalcEngine()
     c.calc_signal()
