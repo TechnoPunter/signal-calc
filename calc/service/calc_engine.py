@@ -6,11 +6,10 @@ import time
 import pyotp
 from NorenRestApiPy.NorenApi import NorenApi
 
-from calc.config.reader import cfg
+from commons.config.reader import cfg
 from calc.dataprovider.redis import insert_signal, insert_signal_history
 from calc.models.models import Signal, SignalHistory
 from calc.utils.utils import Symbols
-
 
 logger = logging.getLogger(__name__)
 
@@ -21,21 +20,34 @@ class CalcEngine:
     api = NorenApi(host='https://api.shoonya.com/NorenWClientTP/',
                    websocket='wss://api.shoonya.com/NorenWSTP/')
 
+    def api_login(self, cred):
+        try_attempts = 5
+        resp = None
+        while try_attempts >= 0:
+            resp = self.api.login(userid=cred['user'],
+                                  password=cred['pwd'],
+                                  twoFA=pyotp.TOTP(cred['token']).now(),
+                                  vendor_code=cred['vc'],
+                                  api_secret=cred['apikey'],
+                                  imei=cred['imei'])
+            if resp is not None:
+                break
+            try_attempts = try_attempts - 1
+        return resp
+
     def __init__(self, acct: str = 'Trader-V2-Mahi'):
         self.symbols = Symbols()
         creds = cfg['shoonya']
         if creds is None:
-            raise Exception(f'Unable to find creds for')
+            raise Exception(f'Unable to find creds for shoonya')
         cred = creds[acct]
-        logger.info(f"api_login: About to call api.login with {cred}")
-        resp = self.api.login(userid=cred['user'],
-                              password=cred['pwd'],
-                              twoFA=pyotp.TOTP(cred['token']).now(),
-                              vendor_code=cred['vc'],
-                              api_secret=cred['apikey'],
-                              imei=cred['imei'])
-        # todo add retry mechanism
-        logger.info(f"api login response {resp}")
+        logger.debug(f"api_login: About to call api.login with {cred}")
+        resp = self.api_login(cred)
+        if resp is None:
+            logger.debug(f"api_login: failed api.login with cred {cred}")
+            raise Exception(f"API login failed with cred {cred}")
+        else:
+            logger.debug(f"api_login: Post api.login; Resp: {resp}")
 
     @staticmethod
     def get_signal_by_ts(scrip: str, ts: list):
@@ -123,7 +135,7 @@ class CalcEngine:
 
 
 if __name__ == '__main__':
-    import calc.loggers.setup_logger
+    import commons.loggers.setup_logger
 
     DEBUG = True
     logger.info("Started Calc Engine")

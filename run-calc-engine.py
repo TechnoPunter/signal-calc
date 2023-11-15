@@ -1,4 +1,4 @@
-from calc.loggers.setup_logger import setup_logging
+from commons.loggers.setup_logger import setup_logging
 from calc.service.calc_engine import CalcEngine
 import logging
 
