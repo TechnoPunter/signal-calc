@@ -12,6 +12,8 @@ SCRIP_MAP = {'BAJAJ_AUTO-EQ': 'BAJAJ-AUTO-EQ', 'M_M-EQ': 'M&M-EQ'}
 
 
 class Symbols:
+    tokens = {}
+
     def __init__(self):
         zip_file_name = 'NSE_symbols.zip'
         token_file_name = 'NSE_symbols.txt'
@@ -31,17 +33,24 @@ class Symbols:
         self.symbols = pd.read_csv(token_file_name)
         os.remove(token_file_name)
 
+    def set_token(self, key: str, value: str):
+        self.tokens[key] = value
+
     def get_token(self, scrip):
+        if self.tokens.get(scrip) is not None:
+            return self.tokens.get(scrip)
         logger.debug(f"Getting token for {scrip}")
         symbol = scrip.replace("NSE_", "")
         symbol = symbol + "-EQ"
         symbol = SCRIP_MAP.get(symbol, symbol)
         # todo check for invalid token
-        return str(self.symbols.loc[self.symbols.TradingSymbol == symbol]['Token'].iloc[0])
+        result = str(self.symbols.loc[self.symbols.TradingSymbol == symbol]['Token'].iloc[0])
+        self.set_token(scrip, result)
+        return result
 
 
 if __name__ == '__main__':
-    import calc.loggers.setup_logger
+    import commons.loggers.setup_logger
 
     s = Symbols()
     print(s.get_token("NSE_ONGC"))

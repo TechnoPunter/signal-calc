@@ -11,3 +11,4 @@ pyyaml
 pyotp
 apscheduler
 pandas
+git+https://github.com/TechnoPunter/TechnoPunter-Commons.git@main
