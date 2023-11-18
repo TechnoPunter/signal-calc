@@ -15,13 +15,15 @@ logger = logging.getLogger(__name__)
 
 DEBUG = False
 
+RETRY_ATTEMPTS = 5
+
 
 class CalcEngine:
     api = NorenApi(host='https://api.shoonya.com/NorenWClientTP/',
                    websocket='wss://api.shoonya.com/NorenWSTP/')
 
     def api_login(self, cred):
-        try_attempts = 5
+        try_attempts = RETRY_ATTEMPTS
         resp = None
         while try_attempts >= 0:
             resp = self.api.login(userid=cred['user'],
@@ -78,8 +80,17 @@ class CalcEngine:
         :return:
         """
         # make call to shoonya api
-        ts = self.api.get_time_price_series("NSE", self.symbols.get_token(scrip))
-        logger.debug(f'Result of shoonya api {ts}')
+        try_attempts = RETRY_ATTEMPTS
+        ts = None
+        while try_attempts >= 0:
+            ts = self.api.get_time_price_series("NSE", self.symbols.get_token(scrip))
+            if ts is not None:
+                break
+            try_attempts = try_attempts - 1
+        if ts is None:
+            logger.debug(f"shoonya_api_call_fail: can't able to get time series for scrip {scrip}")
+        else:
+            logger.debug(f'Result of shoonya api {ts}')
         return scrip, ts
 
     def process_portfolio_scrips(self, scrips: list):
