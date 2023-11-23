@@ -1,0 +1,1 @@
+10    9   * * 1-5 sh  /var/www/signal-calc/scripts/exec-calc-engine.sh
